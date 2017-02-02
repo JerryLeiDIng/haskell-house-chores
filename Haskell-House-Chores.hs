@@ -1,6 +1,8 @@
 import Data.List (findIndices)
 import Data.List.Split
 import qualified Data.Map.Strict as Map
+import Data.Time.Calendar
+import Data.Time.Clock
 import System.Environment
 import System.Exit
 
@@ -14,6 +16,10 @@ import qualified Algorithms.Hungarian as Hungarian
 --      * Module for generating a new week's chore assignments
 --      * Module for setting chore statuses to complete(?)
 
+-- Utility method to obtain the date
+date :: IO (Integer, Int, Int) -- :: (year, month, day)
+date = getCurrentTime >>= return . toGregorian . utctDay
+
 main = getArgs >>= parse >>= putStrLn
 
 -- | Command line argument parsing
@@ -22,7 +28,9 @@ parse ["-help"] = help >> exit
 parse ["-v"] = validate
 parse ["-validate"] = validate
 parse ["-r"] = run
-parse ["-run"] = run
+parse ["-run"] = run 
+parse ("-r":filename:[]) = runWith filename
+parse ("-run":filename:[]) = runWith filename
 parse x = usage >> exitWith (ExitFailure 1)
 
 exit = exitWith ExitSuccess
@@ -36,6 +44,12 @@ validate = do
     return "This is the validation"
 
 run = do
+    (year, month, day) <- date
+    let filename = "chore_assignments_" ++ (show year) ++ "-" ++ (show month) ++ "-" ++ (show day) ++ ".txt"
+    runWith filename
+
+runWith filename = do
+    putStrLn $ "Creating assignments. Output will be written to " ++ filename
     chores <- parseChores <$> readFile "example_chores.txt"
     history <- parseHistory <$> readFile "example_history.txt"
     brothers <- parseBrothers <$> readFile "example_brothers.txt"
