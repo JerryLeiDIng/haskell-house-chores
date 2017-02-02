@@ -61,46 +61,40 @@ data BrotherHistory = BrotherHistory {
     previousDifficulties :: [Difficulty]
 } deriving (Eq, Show)
 
-parseHistory :: String -> Map.Map BrotherName BrotherHistory
-parseHistory choreLines = makeHistoryMap $ lines choreLines
-    -- TODO clean this up using where pattern matching
-    -- We can probably not even use the Map and stick to assication list
-    -- gets rid of second level of nesting where statements
-    where 
-        makeHistoryMap :: [String] -> Map.Map BrotherName BrotherHistory
-        makeHistoryMap [] = Map.empty
-        makeHistoryMap (header:rest) = Map.fromList choreHistory
-            where 
-                -- headerIndex maps each brother name to an index
-                headerIndex :: [(BrotherName, Int)]
-                headerIndex = zip (splitOn "\t" header) [0..]
-                -- choreParsed is a list of lists of tuples (choreName, choreDifficulty)
-                -- Splits each line on \t, then parsing the output into tuples
-                -- TODO somehow encode the length of each list in the type system 
-                choreParsed :: [[(Chore, Difficulty)]]
-                choreParsed = map (parseTuple . splitOn ",") . (splitOn "\t") <$> rest
-                    where
-                        parseTuple (c:d:[]) = (c, read d :: Int)
-                        parseTuple x = error $ "Badly formatted history input: " ++ show x
-                -- Each ([String],[Int]) tuple in choreFolded is the (ordered) list of 
-                -- chore names and difficulties for the corresponding brother
-                choreFolded :: [([Chore], [Difficulty])]
-                choreFolded = foldr
-                  (\next cum -> collapseIntoList <$> zip cum next)
-                  (replicate (length headerIndex) ([],[]))
-                  choreParsed
-                    where 
-                        collapseIntoList ((strs, diffs), (str, diff)) =
-                          (str:strs, diff:diffs) 
-                -- choreHistory is the association list which maps names to histories
-                choreHistory :: [(BrotherName, BrotherHistory)]
-                choreHistory = (\((name, index),(chores, diffs)) -> 
-                  (name, BrotherHistory {
-                    name=name,
-                    index=index,
-                    previousChores=chores,
-                    previousDifficulties=diffs
-                  })) <$> zip headerIndex choreFolded
+parseHistory :: String -> [(BrotherName, BrotherHistory)]
+parseHistory historyFile = let
+    -- header has header line, rest is list of rest of lines
+    (header:rest) = lines historyFile
+    -- headerIndex maps each brother name to an index
+    headerIndex :: [(BrotherName, Int)]
+    headerIndex = zip (splitOn "\t" header) [0..]
+    -- choreParsed is a list of lists of tuples (choreName, choreDifficulty)
+    -- Splits each line on \t, then parsing the output into tuples
+    -- TODO somehow encode the length of each list in the type system 
+    choreParsed :: [[(Chore, Difficulty)]]
+    choreParsed = map (parseTuple . splitOn ",") . (splitOn "\t") <$> rest
+        where
+            parseTuple (c:d:[]) = (c, read d :: Int)
+            parseTuple x = error $ "Badly formatted history input: " ++ show x
+    -- Each ([String],[Int]) tuple in choreFolded is the (ordered) list of 
+    -- chore names and difficulties for the corresponding brother
+    choreFolded :: [([Chore], [Difficulty])]
+    choreFolded = foldr
+      (zipWith (\(str, diff) (strs, diffs) -> (str:strs, diff:diffs)))
+      (replicate (length headerIndex) ([],[]))
+      choreParsed
+        where 
+            collapseIntoList (strs, diffs) (str, diff) =
+              (str:strs, diff:diffs) 
+    -- Create the association list which maps names to histories
+    in zipWith
+      (\(name, index) (chores, diffs) -> 
+        (name, BrotherHistory {
+          name=name,
+          index=index,
+          previousChores=chores,
+          previousDifficulties=diffs
+        })) headerIndex choreFolded
 
 
 -- | This function runs the actual Hungarian algorithm
