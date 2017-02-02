@@ -3,10 +3,19 @@ import qualified Data.Map.Strict as Map
 import System.Environment
 import System.Exit
 
-import Algorithms.Hungarian as Hungarian
+import qualified Algorithms.Hungarian as Hungarian
+
+-- NOTE In the future, this file should only handle argument parsing and 
+--      function dispatch. The majority of the work should be split off into
+--      separate modules
+-- Tentative module distribution
+--      * Module for clearing and resetting the history for a new semester
+--      * Module for generating a new week's chore assignments
+--      * Module for setting chore statuses to complete(?)
 
 main = getArgs >>= parse >>= putStrLn
 
+-- | Command line argument parsing
 parse ["-h"] = help >> exit
 parse ["-help"] = help >> exit
 parse ["-v"] = validate
@@ -31,10 +40,15 @@ run = do
     brothers <- parseBrothers <$> readFile "example_brothers.txt"
     return $ "This is the run\n" ++ (show history)
 
+
+
 -- |The parseChores function takes a chore file and parses it to a list of chore tuples
 parseChores :: String -> [(String, Int, Int)]
 parseChores choreLines = map (parseLine . splitOn ",") $ (tail . lines) choreLines
     where parseLine (a:b:c:[]) = (a, read b, read c)
+
+parseBrothers :: String -> String
+parseBrothers x = "TEST"
 
 -- The following datatypes and functions are used for building the chore history
 type Chore = String
@@ -50,6 +64,8 @@ data BrotherHistory = BrotherHistory {
 parseHistory :: String -> Map.Map BrotherName BrotherHistory
 parseHistory choreLines = makeHistoryMap $ lines choreLines
     -- TODO clean this up using where pattern matching
+    -- We can probably not even use the Map and stick to assication list
+    -- gets rid of second level of nesting where statements
     where 
         makeHistoryMap :: [String] -> Map.Map BrotherName BrotherHistory
         makeHistoryMap [] = Map.empty
@@ -87,7 +103,28 @@ parseHistory choreLines = makeHistoryMap $ lines choreLines
                   })) <$> zip headerIndex choreFolded
 
 
-parseBrothers :: String -> String
-parseBrothers x = "TEST"
+-- | This function runs the actual Hungarian algorithm
+setUpHungarianMatrix :: [(Chore, Difficulty)] -> [(BrotherName, BrotherHistory)] -> [(BrotherName, Chore)]
+setUpHungarianMatrix chores brothers = let
+    makeCostFn :: Floating a => BrotherHistory -> (Chore, Difficulty) -> a
+    makeCostFn bhist = 
+        (\ (chore,diff) -> ((fromIntegral $ sum $ previousDifficulties bhist) + 
+            (if elem chore $ previousChores bhist then 0.1 else 0 ))**2)
+
+    brotherCostFns :: Floating a => [(Chore, Difficulty) -> a]
+    brotherCostFns = (\(_, bhist) -> makeCostFn bhist) <$> brothers
+
+    costMatrix :: Floating a => [a]
+    costMatrix = brotherCostFns <*> chores
+
+    hungarianResult :: [(Int, Int)]
+    hungarianResult = if length brothers == length chores
+        then fst $ Hungarian.hungarian costMatrix (length chores) (length brothers)
+        else error "Number of brothers and chores not the same!"
+
+    in (\(choreIdx, broIdx) -> (fst $ brothers !! broIdx, fst $ chores !! choreIdx)) <$> hungarianResult
+
+
+
 
 
