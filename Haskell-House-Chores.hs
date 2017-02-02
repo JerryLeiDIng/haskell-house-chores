@@ -8,6 +8,7 @@ import System.Exit
 import qualified Algorithms.Hungarian as Hungarian
 
 import Parse
+import ChoreWriter
 
 -- NOTE In the future, this file should only handle argument parsing and 
 --      function dispatch. The majority of the work should be split off into
@@ -24,25 +25,37 @@ date = getCurrentTime >>= return . toGregorian . utctDay
 main = getArgs >>= parse >>= putStrLn
 
 -- | Command line argument parsing
+parse ["-c"] = clean
+parse ["-clean"] = clean
 parse ["-h"] = help >> exit
 parse ["-help"] = help >> exit
-parse ["-v"] = validate
-parse ["-validate"] = validate
 parse ["-r"] = run
 parse ["-run"] = run 
 parse ("-r":filename:[]) = runWith filename
 parse ("-run":filename:[]) = runWith filename
+parse ["-v"] = validate
+parse ["-validate"] = validate
+-- TODO get rid of me after testing is done!
+parse ["-t"] = test >> exit
 parse x = usage >> exitWith (ExitFailure 1)
 
 exit = exitWith ExitSuccess
 
-usage = putStrLn "This would be usage instructions"
 
+--TODO delete me after testing is done
+test = do
+    let choreList :: [(Parse.BrotherName, Parse.ChoreName)]
+        choreList = [("A1", "Little Kitchen"), ("B2", "Big Kitchen"), ("A1", "QChore")]
+    writeChoreAssignments "test_assignments.txt" choreList
+
+
+-- TODO clean should clear the history
+-- But first PROMPT the user and backup the history file to be safe
+clean = do
+    return "This will clear and regenerate the history file"
+
+-- TODO help should print out information about all usage flags and modes
 help = putStrLn "This would be help stuff"
-
-validate = do
-    history <- parseHistory <$> readFile "example_chores.txt"
-    return "This is the validation"
 
 run = do
     (year, month, day) <- date
@@ -55,6 +68,17 @@ runWith filename = do
     history <- Parse.parseHistory <$> readFile "example_history.txt"
     brothers <- Parse.parseBrothers <$> readFile "example_brothers.txt"
     return $ show history
+
+usage = putStrLn "Invalid command\nFor help, run `haskell-house-chores -h`"
+
+-- TODO validate should check the number of brothers/chores
+-- List of brothers who will be missing, brothers w/ penalty chores
+-- Prompt to continue
+-- Prints out tentative chore assignments but DOES NOT save them
+validate = do
+    return "This is the validation"
+
+
 
 -- | This function runs the actual Hungarian algorithm
 setUpHungarianMatrix :: [(Parse.ChoreName, Parse.Difficulty)] -> [(Parse.BrotherName, Parse.BrotherHistory)] -> [(Parse.BrotherName, Parse.ChoreName)]
