@@ -2,6 +2,7 @@ module Parse
 (parseChores,
 parseBrothers,
 parseHistory,
+parseLatestHistory,
 ChoreName,
 BrotherName,
 Difficulty,
@@ -15,6 +16,7 @@ parseChores :: String -> [(String, Int, Int)]
 parseChores choreLines = map (parseLine . splitOn ",") $ (tail . lines) choreLines
     where parseLine (a:b:c:[]) = (a, read b, read c)
 
+-- | TODO implement me!
 parseBrothers :: String -> String
 parseBrothers x = "TEST"
 
@@ -28,6 +30,7 @@ data BrotherHistory = BrotherHistory {
     previousChores :: [ChoreName],
     previousDifficulties :: [Difficulty]
 } deriving (Eq, Show)
+
 
 -- | parseHistory parses the history file into an association list of brothers to their
 --   chore histories. It uses the header line to count the number of brothers in total
@@ -72,3 +75,10 @@ parseHistory historyFile = let
         })) headerIndex choreFolded
 
 
+-- | parseLatestHistory extracts the latest line from the history file specified
+--      This corresponds to the chore assignments from the last week
+--      TODO make this a more general interface by specifying line index?
+parseLatestHistory :: String -> [(BrotherName, ChoreName, Difficulty)]
+parseLatestHistory historyFile = let
+    parsedHistory = parseHistory historyFile
+    in map (\(name, hist) -> (name, last $ previousChores hist, last $ previousDifficulties hist)) parsedHistory

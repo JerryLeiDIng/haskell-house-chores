@@ -66,7 +66,8 @@ runWith filename = do
     chores <- Parse.parseChores <$> readFile "example_chores.txt"
     history <- Parse.parseHistory <$> readFile "example_history.txt"
     brothers <- Parse.parseBrothers <$> readFile "example_brothers.txt"
-    return $ show history
+    latestHistory <- Parse.parseLatestHistory <$> readFile "example_history.txt"
+    return $ show latestHistory
 
 usage = putStrLn "Invalid command\nFor help, run `haskell-house-chores -h`"
 

@@ -12,7 +12,7 @@ import Data.Time.Calendar
 import Data.Time.Clock
 import qualified System.IO as IO
 
-import Parse (ChoreName, BrotherName, Difficulty)
+import Parse (ChoreName, BrotherName, Difficulty, parseLatestHistory)
 
 
 -- TODO think about how this interface should look.
@@ -59,9 +59,10 @@ createNewWeekHistory assignments filename = do
 -- | Updates the latest week's history to set the status of the(chore, brother) pairs
 --      If any pair is invalid, will throw error!
 --      Note that Difficulty will be -1 for incomplete chores
-updateNewWeekHistory :: [(BrotherName, ChoreName, Difficulty)] -> IO ()
-updateNewWeekHistory updates = return ()
-
+updateNewWeekHistory :: [(BrotherName, ChoreName, Difficulty)] -> String -> IO ()
+updateNewWeekHistory updates filename = do
+    return ()
+    
 
 
 -- | Appends the new set of chores to the history file
