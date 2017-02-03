@@ -61,7 +61,18 @@ createNewWeekHistory assignments filename = do
 --      Note that Difficulty will be -1 for incomplete chores
 updateNewWeekHistory :: [(BrotherName, ChoreName, Difficulty)] -> String -> IO ()
 updateNewWeekHistory updates filename = do
-    return ()
+    historyContents <- readFile filename
+    let lastLine = head $ reverse $ lines historyContents
+        date:assignments = splitOn "\t" lastLine
+        newAssignments = map (\(_,chore,diff) -> chore++","++show diff) updates
+        newLastLine = intercalate "\t" (date:newAssignments)
+        newHistoryContents = unlines $ reverse $ (newLastLine:(tail $ reverse $ lines historyContents))
+        headerNames = splitOn "\t" $ head $ lines historyContents
+        assignmentNames = map (\(bro, _, _) -> bro) updates
+    if headerNames /= assignmentNames
+      then error $ "Fatal: History column header and provided names did not match!"
+      else writeFile filename newHistoryContents
+
     
 
 
