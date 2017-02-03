@@ -17,8 +17,10 @@ parseChores choreLines = map (parseLine . splitOn ",") $ (tail . lines) choreLin
     where parseLine (a:b:c:[]) = (a, read b, read c)
 
 -- | TODO implement me!
-parseBrothers :: String -> String
-parseBrothers x = "TEST"
+-- | The parseBrothers function takes a brothers file and parses it to a list of
+--   BrotherNames
+parseBrothers :: String -> [BrotherName]
+parseBrothers = lines 
 
 -- The following datatypes and functions are used for building the chore history
 type ChoreName = String
