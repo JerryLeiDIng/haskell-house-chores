@@ -4,6 +4,7 @@ import Data.Time.Calendar
 import Data.Time.Clock
 import System.Environment
 import System.Exit
+import qualified System.IO as IO
 
 import qualified Algorithms.Hungarian as Hungarian
 
@@ -17,10 +18,6 @@ import ChoreWriter
 --      * Module for clearing and resetting the history for a new semester
 --      * Module for generating a new week's chore assignments
 --      * Module for setting chore statuses to complete(?)
-
--- Utility method to obtain the date
-date :: IO (Integer, Int, Int) -- :: (year, month, day)
-date = getCurrentTime >>= return . toGregorian . utctDay
 
 main = getArgs >>= parse >>= putStrLn
 
@@ -36,7 +33,7 @@ parse ("-run":filename:[]) = runWith filename
 parse ["-v"] = validate
 parse ["-validate"] = validate
 -- TODO get rid of me after testing is done!
-parse ["-t"] = test >> exit
+parse ["-t"] = test
 parse x = usage >> exitWith (ExitFailure 1)
 
 exit = exitWith ExitSuccess
@@ -44,10 +41,12 @@ exit = exitWith ExitSuccess
 
 --TODO delete me after testing is done
 test = do
+    handle <- IO.openFile "test_assignments.txt" IO.WriteMode 
     let choreList :: [(Parse.BrotherName, Parse.ChoreName)]
         choreList = [("A1", "Little Kitchen"), ("B2", "Big Kitchen"), ("A1", "QChore")]
-    writeChoreAssignments "test_assignments.txt" choreList
-
+    ops <- writeChoreAssignments choreList handle
+    IO.hClose handle
+    return $ (show $ length ops) ++ " chore assignments written"
 
 -- TODO clean should clear the history
 -- But first PROMPT the user and backup the history file to be safe
@@ -58,8 +57,8 @@ clean = do
 help = putStrLn "This would be help stuff"
 
 run = do
-    (year, month, day) <- date
-    let filename = "chore_assignments_" ++ (show year) ++ "-" ++ (show month) ++ "-" ++ (show day) ++ ".txt"
+    string <- getDateString
+    let filename = "chore_assignments_" ++ string ++ ".txt"
     runWith filename
 
 runWith filename = do
