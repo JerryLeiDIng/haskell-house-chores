@@ -10,6 +10,7 @@ import Data.List
 import Data.List.Split
 import Data.Time.Calendar
 import Data.Time.Clock
+import System.Directory
 import qualified System.IO as IO
 
 import Parse (ChoreName, BrotherName, Difficulty, parseLatestHistory)
@@ -46,15 +47,17 @@ writeChoreAssignments assignments handle = let
 --      Otherwise an error will be raised
 createNewWeekHistory :: [(BrotherName, ChoreName)] -> String -> IO ()
 createNewWeekHistory assignments filename = do
-    historyContents <- readFile filename
+    let tmpHistoryName = filename ++ ".tmp"
+    copyFile filename tmpHistoryName
+    historyContents <- readFile tmpHistoryName
     dateFormatted <- getDateString
-    let headerNames = splitOn "\t" $ head $ lines historyContents
+    let headerNames = tail $ splitOn "\t" $ head $ lines historyContents
         assignmentNames = map fst assignments
-        newTokens = dateFormatted : map (flip (++) ",-1" . show . fst) assignments
+        newTokens = dateFormatted : map (flip (++) ",-1" . snd) assignments
         newLine = intercalate "\t" newTokens
     if headerNames /= assignmentNames
         then error $ "Fatal: History column header and provided names did not match!" 
-        else appendFile filename newLine
+        else appendFile filename newLine >> removeFile tmpHistoryName
 
 -- | Updates the latest week's history to set the status of the(chore, brother) pairs
 --      If any pair is invalid, will throw error!

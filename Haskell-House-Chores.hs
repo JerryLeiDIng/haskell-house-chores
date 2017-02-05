@@ -1,3 +1,4 @@
+import Data.List
 import Data.List.Split
 import qualified Data.Map.Strict as Map
 import Data.Time.Calendar
@@ -57,9 +58,10 @@ run = do
     runWith filename
 
 runWith filename = do
+    let historyFile = "example_history.txt"
     putStrLn $ "Creating assignments. Output will be written to " ++ filename
     chores <- Parse.parseChores <$> readFile "example_chores.txt"
-    history <- Parse.parseHistory <$> readFile "example_history.txt"
+    history <- Parse.parseHistory <$> readFile historyFile
     let slots :: [(Parse.ChoreName, Parse.Difficulty)]
         slots = makeChoreSlots chores $ length history
         assignments :: [(Parse.BrotherName, Parse.ChoreName)]
@@ -67,7 +69,9 @@ runWith filename = do
     handle <- IO.openFile filename IO.WriteMode 
     ops <- writeChoreAssignments assignments handle
     IO.hClose handle
-    return $ (show $ length ops - 1) ++ " chore assignments written"
+    putStrLn $ (show $ length ops - 1) ++ " chore assignments written"
+    createNewWeekHistory (sortBy (\(b1,_) (b2,_) -> compare b1 b2) assignments) historyFile
+    return $ "History file updated at " ++ historyFile
 
 
 usage = putStrLn "Invalid command\nFor help, run `haskell-house-chores -h`"
