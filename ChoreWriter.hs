@@ -73,10 +73,3 @@ updateNewWeekHistory updates filename = do
       then error $ "Fatal: History column header and provided names did not match!"
       else writeFile filename newHistoryContents
 
-    
-
-
--- | Appends the new set of chores to the history file
---   Writes a backup version of the current history
---   Note that columns are written IN ORDER THEY ARE GIVEN
---   Be sure order is the same as the existing order in the history file
