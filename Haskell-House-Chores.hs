@@ -41,12 +41,7 @@ exit = exitWith ExitSuccess
 
 --TODO delete me after testing is done
 test = do
-    handle <- IO.openFile "test_assignments.txt" IO.WriteMode 
-    let choreList :: [(Parse.BrotherName, Parse.ChoreName)]
-        choreList = [("A1", "Little Kitchen"), ("B2", "Big Kitchen"), ("A1", "QChore")]
-    ops <- writeChoreAssignments choreList handle
-    IO.hClose handle
-    return $ (show $ length ops) ++ " chore assignments written"
+    return "This is a test command that should be deleted in the final version"
 
 -- TODO clean should clear the history
 -- But first PROMPT the user and backup the history file to be safe
@@ -65,9 +60,15 @@ runWith filename = do
     putStrLn $ "Creating assignments. Output will be written to " ++ filename
     chores <- Parse.parseChores <$> readFile "example_chores.txt"
     history <- Parse.parseHistory <$> readFile "example_history.txt"
-    brothers <- Parse.parseBrothers <$> readFile "example_brothers.txt"
-    latestHistory <- Parse.parseLatestHistory <$> readFile "example_history.txt"
-    return $ show latestHistory
+    let slots :: [(Parse.ChoreName, Parse.Difficulty)]
+        slots = makeChoreSlots chores $ length history
+        assignments :: [(Parse.BrotherName, Parse.ChoreName)]
+        assignments = setUpHungarianMatrix slots history
+    handle <- IO.openFile filename IO.WriteMode 
+    ops <- writeChoreAssignments assignments handle
+    IO.hClose handle
+    return $ (show $ length ops - 1) ++ " chore assignments written"
+
 
 usage = putStrLn "Invalid command\nFor help, run `haskell-house-chores -h`"
 
@@ -78,6 +79,17 @@ usage = putStrLn "Invalid command\nFor help, run `haskell-house-chores -h`"
 validate = do
     return "This is the validation"
 
+
+-- | This function converts the list of (Chore, NumBrothers, Difficulty)
+--   tuples into the final list of (Chore, Diff) slots
+--   Throws error if more chore slots then finalLength
+--   Pads the list to length finalLength if shorter
+makeChoreSlots :: [(Parse.ChoreName, Int, Parse.Difficulty)] -> Int -> [(Parse.ChoreName, Parse.Difficulty)]
+makeChoreSlots chores finalLength = let
+    rawSlots = concatMap (\(chore, n, diff) -> replicate n (chore, diff)) chores
+    in if length rawSlots > finalLength
+        then error "The number of chore slots is greater than the number of brothers!"
+        else rawSlots ++ (replicate (finalLength - (length rawSlots)) ("No chore", 0))
 
 
 -- | This function runs the actual Hungarian algorithm
