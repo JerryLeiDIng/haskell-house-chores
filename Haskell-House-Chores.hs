@@ -1,8 +1,7 @@
 import Data.List
 import Data.List.Split
 import qualified Data.Map.Strict as Map
-import Data.Time.Calendar
-import Data.Time.Clock
+import System.Directory
 import System.Environment
 import System.Exit
 import qualified System.IO as IO
@@ -20,6 +19,13 @@ import ChoreWriter
 --      * Module for generating a new week's chore assignments
 --      * Module for setting chore statuses to complete(?)
 
+-- | Constants and globals
+historyFile = "example_history.txt"
+brothersFile = "example_brothers.txt"
+choresFile = "example_chores.txt"
+
+
+-- | Run the actual program
 main = getArgs >>= parse >>= putStrLn
 
 -- | Command line argument parsing
@@ -44,23 +50,44 @@ exit = exitWith ExitSuccess
 test = do
     return "This is a test command that should be deleted in the final version"
 
--- TODO clean should clear the history
--- But first PROMPT the user and backup the history file to be safe
+-- | Cleans the history file and creates a blank one with the
+--   column headers corresponding to brothers in brothersFile 
+--   Prompts the user for confirmation and backs up the history file
+--   TODO annotate the backup file with the EXACT time and not just the date
 clean = do
-    return "This will clear and regenerate the history file"
+    putStrLn "Warning!"
+    putStrLn $ "This action will delete the entire history file at " ++ historyFile
+    putStr "Continue? (y/n):"
+    IO.hFlush IO.stdout
+    continue <- getLine
+    date <- getDateString
+    if continue == "y" 
+      then
+        let backUpHistory = historyFile ++ "." ++ date ++ ".bak" in
+        copyFile historyFile backUpHistory >>
+        putStrLn ("Old history file backed up at " ++ backUpHistory) >>
+        (Parse.parseBrothers <$> readFile brothersFile) >>=
+        (\bros -> writeFile historyFile $ intercalate "\t" ("Date":bros)) >>
+        return "New history file generated!"
+      else
+        return "Aborting!"
+        
 
--- TODO help should print out information about all usage flags and modes
+-- | TODO help should print out information about all usage flags and modes
 help = putStrLn "This would be help stuff"
 
+-- | Assigns chores using default assignment filename
 run = do
     string <- getDateString
     let filename = "chore_assignments_" ++ string ++ ".txt"
     runWith filename
 
+-- | Assigns chores using specified assignment filename
+--   TODO create flag for validation usage which prints the assignments
+--   but does not write to file or update the history
 runWith filename = do
-    let historyFile = "example_history.txt"
     putStrLn $ "Creating assignments. Output will be written to " ++ filename
-    chores <- Parse.parseChores <$> readFile "example_chores.txt"
+    chores <- Parse.parseChores <$> readFile choresFile
     history <- Parse.parseHistory <$> readFile historyFile
     let slots :: [(Parse.ChoreName, Parse.Difficulty)]
         slots = makeChoreSlots chores $ length history

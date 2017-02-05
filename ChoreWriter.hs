@@ -72,7 +72,8 @@ updateNewWeekHistory updates filename = do
         newHistoryContents = unlines $ reverse $ (newLastLine:(tail $ reverse $ lines historyContents))
         headerNames = splitOn "\t" $ head $ lines historyContents
         assignmentNames = map (\(bro, _, _) -> bro) updates
+        tmpFileName = filename ++ ".tmp"
     if headerNames /= assignmentNames
       then error $ "Fatal: History column header and provided names did not match!"
-      else writeFile filename newHistoryContents
+      else writeFile tmpFileName newHistoryContents >> renameFile tmpFileName filename
 

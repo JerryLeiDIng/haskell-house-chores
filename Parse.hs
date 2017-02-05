@@ -16,7 +16,6 @@ parseChores :: String -> [(String, Int, Int)]
 parseChores choreLines = map (parseLine . splitOn ",") $ (tail . lines) choreLines
     where parseLine (a:b:c:[]) = (a, read b, read c)
 
--- | TODO implement me!
 -- | The parseBrothers function takes a brothers file and parses it to a list of
 --   BrotherNames
 parseBrothers :: String -> [BrotherName]
